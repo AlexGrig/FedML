@@ -27,6 +27,7 @@ def read_data(train_data_dir, test_data_dir):
 
     train_files = os.listdir(train_data_dir)
     train_files = [f for f in train_files if f.endswith('.json')]
+    logging.info(f'alex: {train_files}')
     for f in train_files:
         file_path = os.path.join(train_data_dir, f)
         with open(file_path, 'r') as inf:
@@ -87,17 +88,18 @@ def load_partition_data_mnist_by_device_id(batch_size,
 def load_partition_data_mnist(batch_size,
                               train_path="./../../../data/MNIST/train",
                               test_path="./../../../data/MNIST/test"):
+    logging.info(f'alex: {train_path}, {test_path}')
     users, groups, train_data, test_data = read_data(train_path, test_path)
 
     if len(groups) == 0:
         groups = [None for _ in users]
-    train_data_num = 0
-    test_data_num = 0
-    train_data_local_dict = dict()
-    test_data_local_dict = dict()
-    train_data_local_num_dict = dict()
-    train_data_global = list()
-    test_data_global = list()
+    train_data_num = 0 # total amount of samples in train data
+    test_data_num = 0 # total amount of samples in test data
+    train_data_local_dict = dict() # batches of train client data
+    test_data_local_dict = dict() # batches of test client data
+    train_data_local_num_dict = dict() # amount of train samples for a client. Client is a user, but they indexed 0..N
+    train_data_global = list() # all train data batches, independent of client
+    test_data_global = list() # all test data batches, independent of client
     client_idx = 0
     logging.info("loading data...")
     for u, g in zip(users, groups):
@@ -108,7 +110,7 @@ def load_partition_data_mnist(batch_size,
         train_data_local_num_dict[client_idx] = user_train_data_num
 
         # transform to batches
-        train_batch = batch_data(train_data[u], batch_size)
+        train_batch = batch_data(train_data[u], batch_size) # [(batched_x, batched_y),...]
         test_batch = batch_data(test_data[u], batch_size)
 
         # index using client index

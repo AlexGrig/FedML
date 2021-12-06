@@ -1,0 +1,1 @@
+./run_fedavg_distributed_pytorch.sh 1000 10 lr hetero 200 1 10 0.03 mnist "/Users/alexgrig/data/fedml/mnist" sgd 0

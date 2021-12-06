@@ -13,10 +13,13 @@ DATA_DIR=${10}
 CLIENT_OPTIMIZER=${11}
 CI=${12}
 
+export WANDB_API_KEY=034f7f2e055f7c54c93fb9b333d46a9f9282d4d0
+#eexport WANDB_MODE=offline
+
 PROCESS_NUM=`expr $WORKER_NUM + 1`
 echo $PROCESS_NUM
 
-hostname > mpi_host_file
+#hostname > mpi_host_file
 
 mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --gpu_mapping_file "gpu_mapping.yaml" \
