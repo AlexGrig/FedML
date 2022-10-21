@@ -18,6 +18,7 @@ import argparse
 import os
 from os import path
 import logging
+from typing import Dict
 
 import yaml
 
@@ -55,6 +56,9 @@ def add_args():
 
     # default arguments
     parser.add_argument("--role", type=str, default="client")
+    
+    # code version (Alex)
+    parser.add_argument("--code_ver", type=str, default="fedml")
 
     args, unknown = parser.parse_known_args()
     return args
@@ -193,3 +197,16 @@ def load_arguments(training_type=None, comm_backend=None):
 
     args.rank = int(args.rank)
     return args
+    
+def generate_initial_arguments():
+    """
+    
+    """
+    cmd_args = add_args()
+    
+    return cmd_args # dict
+    
+    
+    
+    
+    

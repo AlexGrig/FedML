@@ -1,5 +1,6 @@
 import logging
 from copy import deepcopy
+from re import L
 
 import multiprocess as multiprocessing
 import os
@@ -29,7 +30,7 @@ __version__ = "0.7.337"
 def init(args=None):
     """Initialize FedML Engine."""
     collect_env()
-
+    
     if args is None:
         args = load_arguments(fedml._global_training_type, fedml._global_comm_backend)
 
@@ -95,7 +96,76 @@ def init(args=None):
 
     return args
 
+class AttrDict(dict):
+    """ Attribute Dictionary"""
+    
+    def __setitem__(self, key, value):
+        if isinstance(value, dict): # change dict to AttrDict
+            value = AttrDict(value)
+        super(AttrDict, self).__setitem__(key, value)
+        
+    def __getitem__(self, key):
+        value = self.get(key)
+        if not isinstance(value, AttrDict): # this part is need when we initialized the AttrDict datastructure form recursice dict.
+            if isinstance(value, dict):     # dinamically change the type of value from dict to AttrDict
+                value = AttrDict(value)
+                self.__setitem__(key, value)
+        return self.get(key)
+    
+    def __setattr__(self, key, value):
+        #import pdb; pdb.set_trace()
+        self.__setitem__(key, value)
+    
+    def __getattr__(self, key):
+        #import pdb; pdb.set_trace()
+        return self.__getitem__(key)
+    
+    __delattr__ = dict.__delitem__
 
+    def __add__(self, other):
+        res = AttrDict( {**self, **other} )
+        return res
+class attr:
+    pass
+
+def init2():
+    def load_yaml_config(yaml_path):
+        import yaml
+        with open(yaml_path, "r") as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                raise ValueError("Yaml error - check yaml file")
+        
+    collect_env() # print env data
+    #import pdb; pdb.set_trace()
+    
+    cmd_params = vars( generate_initial_arguments() )
+    config = AttrDict( load_yaml_config(cmd_params['yaml_config_file']) )    
+    config.cmd_params = cmd_params
+    
+    config.common_args.parties_num = config.data_args.partition_parts
+    
+    seed = config.common_args.random_seed
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    
+    if config.common_args.training_type == FEDML_TRAINING_PLATFORM_SIMULATION and hasattr(config.common_args, "backend")\
+        and config.common_args.backend.lower() == "mpi":
+        tmp_args = init_simulation_mpi( attr() )
+
+    elif config.common_args.training_type == FEDML_TRAINING_PLATFORM_SIMULATION and hasattr(config.common_args, "backend")\
+        and config.common_args.backend.lower() == "sp":
+        tmp_args = init_simulation_sp( attr() )
+    else:
+        raise ValueError("Other parameters are not supported currently!")
+    
+    config.common_args.update(vars(tmp_args) )
+    return config
+    
 def print_args(args):
     mqtt_config_path = None
     s3_config_path = None
@@ -117,12 +187,12 @@ def init_simulation_mpi(args):
     from mpi4py import MPI
 
     comm = MPI.COMM_WORLD
-    process_id = comm.Get_rank()
+    rank = comm.Get_rank()
     world_size = comm.Get_size()
     args.comm = comm
-    args.process_id = process_id
+    args.mpi_rank = rank
     args.worker_num = world_size
-    if process_id == 0:
+    if rank == 0:
         args.role = "server"
     return args
 
@@ -307,7 +377,7 @@ def update_client_id_list(args):
                     client_id_list.append(args.rank)
                     args.client_id_list = str(client_id_list)
                     print("------------------client client_id_list = {}-------------------".format(args.client_id_list))
-            else:
+            else:           
                 print(
                     "training_type != FEDML_TRAINING_PLATFORM_CROSS_DEVICE and training_type != FEDML_TRAINING_PLATFORM_CROSS_SILO"
                 )
@@ -333,7 +403,7 @@ from fedml import data
 from fedml import model
 from fedml import mlops
 
-from .arguments import load_arguments
+from .arguments import load_arguments, generate_initial_arguments
 
 from .launch_simulation import run_simulation
 
