@@ -296,7 +296,10 @@ def calculte_dataset_statistics(ds, args):
         zeroth_sample_Y = ds[dataset_split_names[0]][label_key][0]
         Y_dim = calc_dim(zeroth_sample_Y)
         statistics_dict['Y_dim'] = Y_dim
-    
+        statistics_dict['with_labels'] = True
+    else:
+        statistics_dict['with_labels'] = False
+        
     statistics_dict['samples_num'] = ds.num_rows
     statistics_dict['splits'] = list(ds.keys())
     return statistics_dict

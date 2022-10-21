@@ -164,6 +164,8 @@ def init2():
         raise ValueError("Other parameters are not supported currently!")
     
     config.common_args.update(vars(tmp_args) )
+    config.model_args.role = config.common_args.role
+    
     return config
     
 def print_args(args):

@@ -85,3 +85,42 @@ def create(args, output_dim):
     else:
         raise Exception("no such model definition, please check the argument spelling or customize your own model")
     return model
+
+def create2(model_params):
+    """
+    Args:
+        role (_type_): _description_
+        model_params (_type_): _description_
+    """
+    
+    def create_model(model_name, input_dim, output_dim):
+        
+        if model_name == 'linreg_batch':
+            from fedml.model.linear.linreg_batch import LinearRegression_batch
+            model = LinearRegression_batch(input_dim, output_dim)
+        elif model_name == 'sum':
+            from fedml.model.linear.sum import Sum
+            model = Sum()
+        else:
+            raise NotImplemented('Model {model_name} is not Implemented')
+
+        return model
+    
+    role = model_params.role
+    input_dim = model_params.X_dim
+    client_embedding_dim = model_params.client_embedding_dim
+    output_dim = model_params.Y_dim
+    with_labels = model_params.with_labels
+    
+    client_model_name = model_params.client_model
+    server_model_name = model_params.server_model
+    
+    if with_labels:
+        client_model = create_model(client_model_name, input_dim, client_embedding_dim)
+    
+    if role == 'server':      
+        server_model = create_model(server_model_name, client_embedding_dim, output_dim)
+        if with_labels:
+            server_model.client_model = client_model
+            
+    return server_model if role == 'server' else client_model
