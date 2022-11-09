@@ -1,6 +1,7 @@
 import logging
 from copy import deepcopy
 from re import L
+import copy
 
 import multiprocess as multiprocessing
 import os
@@ -144,27 +145,38 @@ def init2():
     config = AttrDict( load_yaml_config(cmd_params['yaml_config_file']) )    
     config.cmd_params = cmd_params
     
-    config.common_args.parties_num = config.data_args.partition_parts
-    
-    seed = config.common_args.random_seed
+    seed = config.common.random_seed
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     
-    if config.common_args.training_type == FEDML_TRAINING_PLATFORM_SIMULATION and hasattr(config.common_args, "backend")\
-        and config.common_args.backend.lower() == "mpi":
-        tmp_args = init_simulation_mpi( attr() )
+    if config.common.training_type == FEDML_TRAINING_PLATFORM_SIMULATION and hasattr(config.common, "backend")\
+        and config.common.backend.lower() == "mpi":
+        connection_params, common_params = init_simulation_mpi( attr() )
 
-    elif config.common_args.training_type == FEDML_TRAINING_PLATFORM_SIMULATION and hasattr(config.common_args, "backend")\
-        and config.common_args.backend.lower() == "sp":
+        config.common.update(common_params)
+        config.model.role = config.common.role
+        config.connection = connection_params
+        
+    elif config.common.training_type == FEDML_TRAINING_PLATFORM_SIMULATION and hasattr(config.common, "backend")\
+        and config.common.backend.lower() == "sp":
         tmp_args = init_simulation_sp( attr() )
+        
+        joint_config = AttrDict({})
+        for ii in range(config.common.parties_num):
+            joint_config[ii] == copy.deepcopy(config)
+
+            joint_config[ii].common.update(vars(tmp_args) )
+            joint_config[ii].model.role = joint_config[ii].common.role
+        
+        joint_config['joint_config'] = True
+        joint_config['parties'] = list(range(config.common.parties_num))
+        joint_config['backend'] = config.common.backend.lower()
+        config = joint_config
     else:
         raise ValueError("Other parameters are not supported currently!")
-    
-    config.common_args.update(vars(tmp_args) )
-    config.model_args.role = config.common_args.role
     
     return config
     
@@ -188,15 +200,20 @@ def print_args(args):
 def init_simulation_mpi(args):
     from mpi4py import MPI
 
+    common_params = {}
+    connection_params = {}
+    
     comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    world_size = comm.Get_size()
-    args.comm = comm
-    args.mpi_rank = rank
-    args.worker_num = world_size
-    if rank == 0:
-        args.role = "server"
-    return args
+    connection_params['comm'] = comm
+    connection_params['rank'] = comm.Get_rank()
+    connection_params['world_size'] = comm.Get_size()
+    
+    common_params['rank'] = connection_params['rank']
+    common_params['parties_num'] = connection_params['world_size']
+    
+    common_params['role']= "server" if (connection_params['rank'] == 0) else "client"
+        
+    return connection_params, common_params
 
 
 def init_simulation_sp(args):

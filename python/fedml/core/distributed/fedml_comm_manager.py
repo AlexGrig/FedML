@@ -24,15 +24,15 @@ class FedMLCommManager(Observer):
 
     def run(self):
         self.register_message_receive_handlers()
-        logging.info("running")
+        #logging.info("running")
         self.com_manager.handle_receive_message()
-        logging.info("finished...")
+        #logging.info("finished...")
 
     def get_sender_id(self):
         return self.rank
 
     def receive_message(self, msg_type, msg_params) -> None:
-        logging.info(
+        logging.debug(
             "receive_message. msg_type = %s, sender_id = %d, receiver_id = %d"
             % (str(msg_type), msg_params.get_sender_id(), msg_params.get_receiver_id())
         )

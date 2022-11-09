@@ -232,77 +232,8 @@ def query_data_server(args, edgeId, s3_obj, BUCKET_NAME):
 
 
 def load(args):
-    if args.dataset == 'mnist_binary38_parts3':
-        import fedml.data.vert_fl_dataloader as vert_fl_dataloader
-        from pathlib import Path
-        
-        data = {}
-        
-        if args.backend.lower() == 'sp':
-            for ii in range(args.common_args.parties_num):
-                part_path = Path(args.data_dir) / args.dataset / f'{args.dataset_part_prefix}{ii}'
-                data[ii] = vert_fl_dataloader.load_splitted_part(part_path, 
-                                split_feature_prefix='image', new_name_split_feature=None)
-                return data
-        elif args.backend.lower() == 'mpi':
-            part_path = Path(args.data_dir) / args.dataset / f'{args.dataset_part_prefix}{args.mpi_rank}'
-            ds = vert_fl_dataloader.load_splitted_part(part_path, 
-                                split_feature_prefix='image', new_name_split_feature=None)
-            data[args.mpi_rank] = ds
-            stat_dict = calculte_dataset_statistics(ds, args)
-            return data, stat_dict
-        else:
-            raise ValueError('Backend not supported!')
-    else:
-        return load_synthetic_data(args)
-    
-def calculte_dataset_statistics(ds, args):
-    def calc_dim(sample):
-        def calc_dim_multidim(sample, size_name):
-            if hasattr(sample, size_name):
-                size = getattr(sample,size_name)
-                if len(size) == 0:
-                    return 1
-                else:
-                    return int(np.prod(size))
-            return None
-        
-        size_names = ('size', 'shape')
-        for nn in size_names:
-            res = calc_dim_multidim(sample, nn)
-            if not res is None:
-                return res
-            
-        sample = np.array(sample)
-        res = calc_dim_multidim(sample, 'shape')
-        
-        
-        return res
-    
-    statistics_dict = {}
-    
-    column_names = list(ds.column_names.values())[0]
-    features_key = [ff for ff in column_names if ff.startswith(args.features_prefix)][0]
-    
-    label_key_search_list = [ff for ff in column_names if ff.startswith(args.label_prefix)]
-    label_key = label_key_search_list[0] if len(label_key_search_list) > 0 else None
-    dataset_split_names = list(ds.keys())
-    
-    zeroth_sample_X = ds[dataset_split_names[0]][features_key][0]
-                    
-    X_dim = calc_dim(zeroth_sample_X)
-    statistics_dict['X_dim'] = X_dim
-    if label_key:
-        zeroth_sample_Y = ds[dataset_split_names[0]][label_key][0]
-        Y_dim = calc_dim(zeroth_sample_Y)
-        statistics_dict['Y_dim'] = Y_dim
-        statistics_dict['with_labels'] = True
-    else:
-        statistics_dict['with_labels'] = False
-        
-    statistics_dict['samples_num'] = ds.num_rows
-    statistics_dict['splits'] = list(ds.keys())
-    return statistics_dict
+    return load_synthetic_data(args)
+
 
 def combine_batches(batches):
     full_x = torch.from_numpy(np.asarray([])).float()
@@ -318,7 +249,7 @@ def load_synthetic_data(args):
         data_server_preprocess(args)
     dataset_name = args.dataset
     # check if the centralized training is enabled
-    centralized = True if (args.clientf_num_in_total == 1 and args.training_type != "cross_silo") else False
+    centralized = True if (args.client_num_in_total == 1 and args.training_type != "cross_silo") else False
 
     # check if the full-batch training is enabled
     args_batch_size = args.batch_size

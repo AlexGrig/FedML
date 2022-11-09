@@ -27,11 +27,11 @@ class MpiCommunicationManager(BaseCommunicationManager):
 
         self.server_send_thread = None
         self.server_receive_thread = None
-        self.server_collective_thread = None
+        #self.server_collective_thread = None
 
         # self.client_send_thread = None
         self.client_receive_thread = None
-        self.client_collective_thread = None
+        #self.client_collective_thread = None
 
         self.is_running = True
 
@@ -111,10 +111,10 @@ class MpiCommunicationManager(BaseCommunicationManager):
         self.is_running = False
         # self.__stop_thread(self.server_send_thread)
         self.__stop_thread(self.server_receive_thread)
-        self.__stop_thread(self.server_collective_thread)
+        #self.__stop_thread(self.server_collective_thread)
         # self.__stop_thread(self.client_send_thread)
         self.__stop_thread(self.client_receive_thread)
-        self.__stop_thread(self.client_collective_thread)
+        #self.__stop_thread(self.client_collective_thread)
 
     def notify(self, msg_params):
         msg_type = msg_params.get_type()

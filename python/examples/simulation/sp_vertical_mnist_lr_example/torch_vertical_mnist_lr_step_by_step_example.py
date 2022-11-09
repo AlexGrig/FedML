@@ -14,10 +14,6 @@ if __name__ == "__main__":
     # load model
     model = fedml.model.create(args, output_dim)
     
-    # model - parameters, and necessary math algorithms. 
-    # model_client/model_server - optimizer, data, training procedure.
-    # client_manager/server_maneger - messages to exchange with.
-    
     # start training
     fedml_runner = FedMLRunner(args, device, dataset, model)
     fedml_runner.run()

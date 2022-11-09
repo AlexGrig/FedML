@@ -52,10 +52,14 @@ class FedMLRunner:
             )
         elif hasattr(args, "backend") and args.backend == FEDML_SIMULATION_TYPE_MPI:
             from .simulation.simulator import SimulatorMPI
-
-            runner = SimulatorMPI(
-                args, device, dataset, model, client_trainer, server_aggregator
-            )
+            from .simulation.simulator_vfl import SimulatorMPI as SimulatorVFL_MPI
+            
+            #import pdb; pdb.set_trace()
+            #runner = SimulatorMPI(
+            #    args, device, dataset, model, client_trainer, server_aggregator
+            #)
+            runner = SimulatorVFL_MPI(args, device, dataset, model)
+            
         elif hasattr(args, "backend") and args.backend == FEDML_SIMULATION_TYPE_NCCL:
             from .simulation.simulator import SimulatorNCCL
 

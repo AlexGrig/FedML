@@ -93,14 +93,14 @@ def create2(model_params):
         model_params (_type_): _description_
     """
     
-    def create_model(model_name, input_dim, output_dim):
+    def create_model(model_name, input_dim, output_dim, params_dict, kw_dict=None):
         
         if model_name == 'linreg_batch':
             from fedml.model.linear.linreg_batch import LinearRegression_batch
-            model = LinearRegression_batch(input_dim, output_dim)
+            model = LinearRegression_batch(input_dim, output_dim, **params_dict)
         elif model_name == 'sum':
             from fedml.model.linear.sum import Sum
-            model = Sum()
+            model = Sum(**kw_dict)
         else:
             raise NotImplemented('Model {model_name} is not Implemented')
 
@@ -115,12 +115,15 @@ def create2(model_params):
     client_model_name = model_params.client_model
     server_model_name = model_params.server_model
     
-    if with_labels:
-        client_model = create_model(client_model_name, input_dim, client_embedding_dim)
-    
-    if role == 'server':      
-        server_model = create_model(server_model_name, client_embedding_dim, output_dim)
+    if role == 'server':
+        client_model = create_model(client_model_name, input_dim + 1, client_embedding_dim, model_params) # server also has its client model
+        # its input dim is +1 since the column of 1s is added to the data to model a bias.
+        
+        server_model = create_model(server_model_name, client_embedding_dim, output_dim, model_params, {'client_model': client_model})
         if with_labels:
             server_model.client_model = client_model
-            
+    elif role == 'client':
+        client_model = create_model(client_model_name, input_dim, client_embedding_dim, model_params)
+    else:
+        raise ValueError(f'Role {role} is undefined') 
     return server_model if role == 'server' else client_model
